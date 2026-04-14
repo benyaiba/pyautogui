@@ -106,7 +106,7 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("WordUp！")
-        self.root.geometry("320x330")
+        self.root.geometry("500x320")
 
         self.data = load_data()
 
