@@ -10,6 +10,9 @@ OUTPUT_JSON = "output.json"
 
 #可以读取 https://github.com/5mdld/anki-jlpt-decks 的v3版数据文件
 #读取期日语词库然后生成json文件，给wordup.py使用
+# 本次词库需要使用apkFileTools3.py文件生成
+# 词库基于https://github.com/5mdld/anki-jlpt-decks 的v3版数据文件 eggrolls-JLPT10k-v3.apkg
+# 词库最新地址 https://github.com/5mdld/anki-jlpt-decks/releases
 # -----------------------
 # 解压 apkg
 # -----------------------

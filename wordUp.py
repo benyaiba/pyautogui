@@ -2,9 +2,26 @@ import tkinter as tk
 import json
 import random
 
-# ===== 文件路径 =====
-FILE_PATH = "wordUp_words.json"
+# ===== 配置文件路径 =====
 CONFIG_PATH = "wordUp_config.json"
+
+# ===== 词库文件路径 =====
+# 词库基于https://github.com/5mdld/anki-jlpt-decks 的v3版数据文件 eggrolls-JLPT10k-v3.apkg
+# 词库最新地址 https://github.com/5mdld/anki-jlpt-decks/releases
+# 本次词库需要使用apkFileTools3.py文件生成json文件
+FILE_PATH = "wordUp_words.json"
+
+# ===== 版本 =====
+VERSION_INFO = {
+    "1": "1.4",# 1：当前软件版本
+    "2": "26.03.25_2",# 2：词库版本
+}
+
+# ===== 窗口尺寸 =====
+WINDOW_SIZES = {
+    "1": "500x320", #1：完整模式窗口尺寸
+    "2": "400x130" #2：简洁模式窗口尺寸
+}
 
 # ===== 自动时间 =====
 AUTO_TIMES = {
@@ -52,7 +69,8 @@ def load_config():
             "mode": "全部",
             "level": "全部",
             "cn": "显示中文",
-            "auto": "不切换"
+            "auto": "不切换",
+            "ui_mode": "1" #1：完整模式 2：简洁模式
         }
 
 def save_config(config):
@@ -73,14 +91,11 @@ def get_filtered_data(data, mark_mode, level_mode):
 
     return result
 
-# ===== 优化1：无爆内存权重抽取 =====
+# ===== 权重 =====
 def get_weight(w):
     base = w.get("freq", 1)
     wrong = w.get("wrong", 0)
-
-    # 推荐平衡公式（核心升级）
     return base + (wrong ** 1.5) * 2
-
 
 def weighted_choice(words):
     total = 0
@@ -106,11 +121,8 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("WordUp！")
-        self.root.geometry("500x320")
 
         self.data = load_data()
-
-        # ===== 优化2：ID索引（O(1)查找）=====
         self.data_index = {w["id"]: w for w in self.data}
 
         self.config_data = load_config()
@@ -118,65 +130,114 @@ class App:
         self.timer_id = None
         self.last_word_id = None
 
+        # ===== UI模式 =====
+        self.ui_mode_var = tk.StringVar(value=self.config_data.get("ui_mode", "1"))
+        self.root.geometry(WINDOW_SIZES.get(self.ui_mode_var.get(), "500x320"))
+
         # ===== 顶部 =====
-        top = tk.Frame(root)
-        top.pack(pady=5)
+        self.top_frame = tk.Frame(root)
+        self.top_frame.pack(pady=5)
 
         self.mode_var = tk.StringVar(value=self.config_data["mode"])
-        tk.OptionMenu(top, self.mode_var, "全部", "已标记", "未标记",
+        tk.OptionMenu(self.top_frame, self.mode_var, "全部", "已标记", "未标记",
                       command=self.on_mode_change).pack(side=tk.LEFT)
 
         self.level_var = tk.StringVar(value=self.config_data["level"])
-        tk.OptionMenu(top, self.level_var, "全部", "N5", "N4", "N3",
+        tk.OptionMenu(self.top_frame, self.level_var, "全部", "N5", "N4", "N3",
                       command=self.on_level_change).pack(side=tk.LEFT)
 
         self.cn_mode = tk.StringVar(value=self.config_data["cn"])
-        tk.OptionMenu(top, self.cn_mode, "显示中文", "隐藏中文",
+        tk.OptionMenu(self.top_frame, self.cn_mode, "显示中文", "隐藏中文",
                       command=self.on_cn_change).pack(side=tk.LEFT)
 
         self.auto_var = tk.StringVar(value=self.config_data["auto"])
-        tk.OptionMenu(top, self.auto_var, *AUTO_TIMES.keys(),
+        tk.OptionMenu(self.top_frame, self.auto_var, *AUTO_TIMES.keys(),
                       command=self.on_auto_change).pack(side=tk.LEFT)
 
-        # ===== 内容 =====
+        tk.OptionMenu(self.top_frame, self.ui_mode_var, "1", "2",
+                      command=self.on_ui_mode_change).pack(side=tk.LEFT)
+
+        # ===== 内容（改成 Entry）=====
         self.label_id = tk.Label(root, text="", font=("Arial", 10), fg="gray")
-        self.label_id.pack()
+        self.label_id.pack(pady=2)
 
-        self.label_kana = tk.Label(root, text="", font=("Arial", 12), fg="gray")
-        self.label_kana.pack()
+        self.entry_kana = tk.Entry(root, font=("Arial", 12), justify="center", bd=0, highlightthickness=0)
+        self.entry_kana.pack(pady=2)
 
-        self.label_jp = tk.Label(root, text="", font=("Arial", 28, "bold"), bd=1, relief="solid")
-        self.label_jp.pack(pady=5)
+        self.entry_jp = tk.Entry(root, font=("Arial", 28, "bold"), justify="center")
+        self.entry_jp.pack(pady=5)
 
-        self.label_cn = tk.Label(root, text="", font=("Arial", 12), fg="gray")
-        self.label_cn.pack()
+        self.entry_cn = tk.Entry(root, font=("Arial", 12), justify="center", bd=0, highlightthickness=0)
+        self.entry_cn.pack(pady=2)
+
+        for e in [self.entry_kana, self.entry_jp, self.entry_cn]:
+            e.config(state="readonly")
 
         self.label_info = tk.Label(root, text="", font=("Arial", 10))
         self.label_info.pack(pady=5)
 
         # 标记
         self.mark_var = tk.IntVar()
-        tk.Checkbutton(root, text="标记", variable=self.mark_var,
-                       command=self.toggle_mark).pack()
+        self.check_mark = tk.Checkbutton(root, text="标记", variable=self.mark_var,
+                                         command=self.toggle_mark)
+        self.check_mark.pack()
 
         # 按钮
-        btn = tk.Frame(root)
-        btn.pack(pady=5)
+        self.btn_frame = tk.Frame(root)
+        self.btn_frame.pack(pady=5)
 
-        tk.Button(btn, text="不会", command=self.mark_wrong).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn, text="会了", command=self.mark_right).pack(side=tk.LEFT, padx=5)
+        tk.Button(self.btn_frame, text="不会", command=self.mark_wrong).pack(side=tk.LEFT, padx=5)
+        tk.Button(self.btn_frame, text="会了", command=self.mark_right).pack(side=tk.LEFT, padx=5)
 
-        tk.Button(root, text="下一个", command=self.next_word).pack(pady=8)
+        # 下一个按钮
+        self.btn_next = tk.Button(root, text="下一个", command=self.next_word)
+        self.btn_next.pack(pady=8)
 
-        tk.Label(root, text="by yaiba@v1.0",
+        tk.Label(root, text="by yaiba@"+VERSION_INFO.get("1","1.0")+"/"+VERSION_INFO.get("2","1.0"),
                  font=("Arial", 8), fg="#999999")\
             .place(relx=1.0, rely=1.0, anchor="se")
 
         self.change_auto(None)
+        self.apply_ui_mode()
         self.next_word()
 
-        # ===== 优化3：更稳定的空格键 =====
+        # 快捷键，按空格，切换下一个
         self.root.bind_all("<space>", self.on_space)
+
+        # 窗口置顶
+        self.root.attributes("-topmost", True)
+
+        # 或者只在简洁模式启用：
+        # if mode == "2":
+        #     self.root.attributes("-topmost", True)
+        # else:
+        #     self.root.attributes("-topmost", False)
+
+    # ===== UI模式 =====
+    def on_ui_mode_change(self, _):
+        self.config_data["ui_mode"] = self.ui_mode_var.get()
+        save_config(self.config_data)
+
+        self.root.geometry(WINDOW_SIZES.get(self.ui_mode_var.get(), "500x320"))
+        self.apply_ui_mode()
+
+    def apply_ui_mode(self):
+        mode = self.ui_mode_var.get()
+
+        if mode == "2":
+            self.top_frame.pack_forget()
+            self.label_id.pack_forget()
+            self.label_info.pack_forget()
+            self.check_mark.pack_forget()
+            self.btn_frame.pack_forget()
+            self.btn_next.pack_forget()
+        else:
+            self.top_frame.pack(pady=5)
+            self.label_id.pack(pady=2)
+            self.label_info.pack(pady=5)
+            self.check_mark.pack()
+            self.btn_frame.pack(pady=5)
+            self.btn_next.pack(pady=8)
 
     # ===== 配置 =====
     def on_mode_change(self, _):
@@ -199,6 +260,13 @@ class App:
         save_config(self.config_data)
         self.change_auto(None)
 
+    # ===== 设置 Entry 内容 =====
+    def set_entry(self, entry, text):
+        entry.config(state="normal")
+        entry.delete(0, tk.END)
+        entry.insert(0, text)
+        entry.config(state="readonly")
+
     # ===== 核心 =====
     def next_word(self):
         filtered = get_filtered_data(
@@ -208,13 +276,12 @@ class App:
         )
 
         if not filtered:
-            self.label_jp.config(text="没有符合条件的词")
-            self.label_kana.config(text="")
-            self.label_cn.config(text="")
+            self.set_entry(self.entry_jp, "没有符合条件的词")
+            self.set_entry(self.entry_kana, "")
+            self.set_entry(self.entry_cn, "")
             self.label_info.config(text="")
             return
 
-        # ===== 优化4：避免连续重复 =====
         for _ in range(10):
             word = weighted_choice(filtered)
             if word["id"] != self.last_word_id:
@@ -229,14 +296,15 @@ class App:
         if not self.current_word:
             return
 
-        self.label_kana.config(text=self.current_word["jppjm"])
-        self.label_jp.config(text=self.current_word["jp"])
-        self.label_id.config(text=self.current_word["id"])
+        self.set_entry(self.entry_kana, self.current_word["jppjm"])
+        self.set_entry(self.entry_jp, self.current_word["jp"])
 
         if self.cn_mode.get() == "隐藏中文":
-            self.label_cn.config(text="***")
+            self.set_entry(self.entry_cn, "***")
         else:
-            self.label_cn.config(text=self.current_word["cn"])
+            self.set_entry(self.entry_cn, self.current_word["cn"])
+
+        self.label_id.config(text=self.current_word["id"])
 
         lv = self.current_word["lv"].upper()
         pos = pos_map.get(self.current_word["pos"], self.current_word["pos"])
@@ -244,10 +312,9 @@ class App:
         freq = self.current_word.get("freq", 0)
 
         self.label_info.config(text=f"{lv} ｜ {pos} ｜ 词频：{freq} ｜ 不会:{wrong}")
-
         self.mark_var.set(self.current_word.get("ismark", 0))
 
-    # ===== 数据操作（优化5：O(1)查找）=====
+    # ===== 数据操作 =====
     def toggle_mark(self):
         w = self.data_index[self.current_word["id"]]
         w["ismark"] = self.mark_var.get()
@@ -295,6 +362,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     root.mainloop()
-
-# pyinstaller --onefile --noconsole pyautogui/wordUp.py
-
