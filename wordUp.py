@@ -162,13 +162,13 @@ class App:
         self.label_id.pack(pady=2)
 
         self.entry_kana = tk.Entry(root, font=("Arial", 12), justify="center", bd=0, highlightthickness=0)
-        self.entry_kana.pack(pady=2)
+        self.entry_kana.pack(fill="x", padx=10, pady=2)
 
         self.entry_jp = tk.Entry(root, font=("Arial", 28, "bold"), justify="center")
-        self.entry_jp.pack(pady=5)
+        self.entry_jp.pack(fill="x", padx=10, pady=5)
 
         self.entry_cn = tk.Entry(root, font=("Arial", 12), justify="center", bd=0, highlightthickness=0)
-        self.entry_cn.pack(pady=2)
+        self.entry_cn.pack(fill="x", padx=10, pady=2)
 
         for e in [self.entry_kana, self.entry_jp, self.entry_cn]:
             e.config(state="readonly")
