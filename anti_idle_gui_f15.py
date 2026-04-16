@@ -76,7 +76,7 @@ root.mainloop()
 # pyinstaller --onefile --noconsole pyautogui/anti_idle_gui_f15.py
 
 # 打包成白色的图标
-# pyinstaller --onefile --noconsole pyautogui/anti_idle_gui_f15.py --add-data "ico/move_to_folder_icon.png;."
+# pyinstaller --onefile --noconsole pyautogui/anti_idle_gui_f15.py --add-data "pyautogui/ico/move_to_folder_icon.png;."
 
 # 打包成黄色的图标 ---现在用的是这个
-# pyinstaller --onefile --noconsole pyautogui/anti_idle_gui_f15.py --add-data "ico/UnplatedFolder.ico;."
+# pyinstaller --onefile --noconsole pyautogui/anti_idle_gui_f15.py --add-data "pyautogui/ico/UnplatedFolder.ico;."
