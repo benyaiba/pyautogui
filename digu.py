@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import scrolledtext
 import requests
@@ -12,15 +13,15 @@ import platform
 import os
 
 # ========= GitHub 配置 =========
-GITHUB_TOKEN = "----"  # ⚠️ 建议后面改成环境变量
+GITHUB_TOKEN = "NICAI"  # ⚠️ 建议后面改成环境变量
 OWNER = "benyaiba"
 REPO = "oneEXE"
 FILE_PATH = "digu_message.txt"
 BRANCH = "main"
 
 # ========= 程序 配置 =========
-MAX_MESSAGES = 100 # 显示的最大件数
-APP_VERSION = "v1.0.0"
+MAX_MESSAGES = 50 # 显示的最大件数
+APP_VERSION = "v1.1"
 APP_AUTHOR = "yaiba"
 
 # ========= 设备标识 =========
@@ -105,7 +106,7 @@ def send_message(user, uid, text):
 class ChatApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("轻量聊天室")
+        self.root.title("DIGU")
         self.root.geometry("500x600")
 
         # ⭐ 固定设备名
@@ -135,7 +136,7 @@ class ChatApp:
         self.input_box = tk.Entry(bottom)
         self.input_box.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        tk.Button(bottom, text="发送", command=self.on_send).pack(side=tk.RIGHT)
+        tk.Button(bottom, text="发送",width=10, command=self.on_send).pack(side=tk.RIGHT)
 
         self.input_box.bind("<Return>", lambda e: self.on_send())
 
@@ -218,6 +219,19 @@ class ChatApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = ChatApp(root)
+
+
+    def resource_path(relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+    root.iconbitmap(resource_path("ico/WindowsUpdateWarning.ico"))
+
     root.mainloop()
 
 # pyinstaller --onefile --noconsole pyautogui/digu.py
+
+# pyinstaller --onefile --noconsole pyautogui/digu.py --add-data "pyautogui/ico/WindowsUpdateWarning.ico;ico" --clean
